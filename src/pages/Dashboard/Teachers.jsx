@@ -1,6 +1,8 @@
-import React, { useState } from "react"
-import { Search } from "lucide-react"
+import React, { useState, useEffect } from "react"
+import { Search, MoreHorizontal, Trash2 } from "lucide-react"
+import { toast } from "react-hot-toast"
 import AddTeacher from "./AddTeacher"
+import TeacherDetailsModal from "../../components/TeacherDetailsModal"
 import noteachers from "../../assets/images/noteachers.svg"
 
 const EmptyState = () => (
@@ -11,7 +13,7 @@ const EmptyState = () => (
   </div>
 )
 
-const TeachersTable = ({ teachers, searchQuery }) => {
+const TeachersTable = ({ teachers, searchQuery, onDelete, onViewDetails }) => {
   const filteredTeachers = teachers.filter(
     (teacher) =>
       teacher.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -47,7 +49,14 @@ const TeachersTable = ({ teachers, searchQuery }) => {
               <td className="py-3 px-4">{teacher.email}</td>
               <td className="py-3 px-4">{teacher.gender}</td>
               <td className="py-3 px-4">
-                <button className="text-blue-600 hover:text-blue-800">•••</button>
+                <div className="flex items-center gap-2">
+                  <button onClick={() => onViewDetails(teacher)} className="p-1 hover:bg-gray-100 rounded">
+                    <MoreHorizontal className="w-5 h-5 text-blue-600" />
+                  </button>
+                  <button onClick={() => onDelete(teacher.email)} className="p-1 hover:bg-red-50 rounded">
+                    <Trash2 className="w-5 h-5 text-red-500" />
+                  </button>
+                </div>
               </td>
             </tr>
           ))}
@@ -61,10 +70,30 @@ export default function Teachers() {
   const [searchQuery, setSearchQuery] = useState("")
   const [teachers, setTeachers] = useState([])
   const [showAddTeacher, setShowAddTeacher] = useState(false)
+  const [selectedTeacher, setSelectedTeacher] = useState(null)
+
+  useEffect(() => {
+    const savedTeachers = localStorage.getItem("teachers")
+    if (savedTeachers) {
+      setTeachers(JSON.parse(savedTeachers))
+    }
+  }, [])
+
+  useEffect(() => {
+    localStorage.setItem("teachers", JSON.stringify(teachers))
+  }, [teachers])
 
   const handleAddTeacher = (newTeacher) => {
     setTeachers((prev) => [...prev, newTeacher])
     setShowAddTeacher(false)
+    toast.success("Teacher added successfully!")
+  }
+
+  const handleDeleteTeacher = (email) => {
+    
+      setTeachers((prev) => prev.filter((teacher) => teacher.email !== email))
+      toast.success("Teacher deleted successfully!")
+    
   }
 
   return (
@@ -85,14 +114,25 @@ export default function Teachers() {
           placeholder="Search for a teachers by name or email"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full px-4 py-2 pl-10 rounded-[8px] bg-[#E0E0E0]"
+          className="w-full px-4 py-2 pl-10 border rounded-md"
         />
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
       </div>
 
-      {teachers.length === 0 ? <EmptyState /> : <TeachersTable teachers={teachers} searchQuery={searchQuery} />}
+      {teachers.length === 0 ? (
+        <EmptyState />
+      ) : (
+        <TeachersTable
+          teachers={teachers}
+          searchQuery={searchQuery}
+          onDelete={handleDeleteTeacher}
+          onViewDetails={setSelectedTeacher}
+        />
+      )}
 
       {showAddTeacher && <AddTeacher onClose={() => setShowAddTeacher(false)} onAddTeacher={handleAddTeacher} />}
+
+      {selectedTeacher && <TeacherDetailsModal teacher={selectedTeacher} onClose={() => setSelectedTeacher(null)} />}
     </div>
   )
 }
